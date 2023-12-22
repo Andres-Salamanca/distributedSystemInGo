@@ -88,28 +88,34 @@ func  (s *grpcServer) ConsumeStream(req *api.ConsumeRequest,stream api.Log_Consu
 	 for  {
 			// Use a select statement to handle both streaming context cancellation and log consumption.
 			 select  {
-			 case  <-stream.Context().Done():
-				// If the client's context is canceled (stream closed), return nil to terminate the streaming.
-					 return  nil
-			 default :
+				case  <-stream.Context().Done():
+					// If the client's context is canceled (stream closed), return nil to terminate the streaming.
+						return  nil
+				default :
 
-					res, err := s.Consume(stream.Context(), req)
-					 switch  err.( type ) {
-						// If no error occurred during log consumption, continue to the next iteration.
-					 case  nil:
-						// If the offset is out of range, continue to the next iteration without returning an error.
-					 case  api.ErrOffsetOutOfRange:
-							 continue
-						// If an unexpected error occurs during log consumption, return the error.
-					 default :
-							 return  err
-					}
+						res, err := s.Consume(stream.Context(), req)
+						switch  err.( type ) {
+							// If no error occurred during log consumption, continue to the next iteration.
+						case  nil:
+							// If the offset is out of range, continue to the next iteration without returning an error.
+						case  api.ErrOffsetOutOfRange:
+								continue
+							// If an unexpected error occurs during log consumption, return the error.
+						default :
+								return  err
+						}
 
-					// Send the consumed log record back to the client via the stream.
-					 if  err = stream.Send(res); err != nil {
-							 return  err
-					}
-					req.Offset++
+						// Send the consumed log record back to the client via the stream.
+						if  err = stream.Send(res); err != nil {
+								return  err
+						}
+						req.Offset++
 			}
 	}
+}
+
+
+type CommitLog  interface {
+	Append(*api.Record) ( uint64 ,  error )
+	Read( uint64 ) (*api.Record,  error )
 }
